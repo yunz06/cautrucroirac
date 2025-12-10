@@ -1,0 +1,9 @@
+QPushButton {
+    background-color: #3498db;
+    color: white;
+    border-radius: 5px;
+    padding: 10px;
+}
+QPushButton:hover {
+    background-color: #2980b9; /* Di chuột vào thì đổi màu */
+}
