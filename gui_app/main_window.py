@@ -179,7 +179,7 @@ class MainWindow(QMainWindow):
                 
                 self.anim_queue = nodes_order
                 self.canvas.highlight_nodes = []
-                self.timer.start(500)
+                self.timer.start(1000)
 
             # 3. BIPARTITE (Chỉ chạy trên vô hướng)
             elif "2 phía" in algo:

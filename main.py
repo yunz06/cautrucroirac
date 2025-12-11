@@ -25,7 +25,7 @@ def main():
     # 2. Thiết lập thông tin ứng dụng
     app.setApplicationName("UrbanFlow")
     app.setApplicationVersion("1.0")
-    app.setOrganizationName("Nhom06_GTVT")
+    app.setOrganizationName("NhomF_GTVT")
 
     # 3. Khởi tạo và hiển thị cửa sổ chính
     # Bọc trong try-except để nếu code lỗi thì nó in ra màn hình đen (console) cho dễ sửa
