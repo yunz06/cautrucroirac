@@ -392,7 +392,7 @@ class MainWindow(QMainWindow):
                 self.canvas.visited_nodes = []
                 
                 self.lbl_status.setText(f"Đang chạy {name} từ đỉnh {s}...")
-                self.timer.start(800) # Tốc độ 800ms/bước
+                self.timer.start(1200) # Tốc độ 1200ms/bước
 
             # -----------------------------------------------------------------
             # 4. KIỂM TRA ĐỒ THỊ 2 PHÍA - Dùng check_bipartite.py
