@@ -1,8 +1,5 @@
 #class Graph , Node , Edge 
 
-import json
-from PyQt6.QtWidgets import QFileDialog
-
 class Node:
     """
     Đại diện cho một Đỉnh (Node), lưu trữ vị trí vật lý (x, y) trên Canvas.
