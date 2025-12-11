@@ -13,7 +13,6 @@ class MapCanvas(QWidget):
         self.nodes = [] 
         
         # Danh sách cạnh [(u, v, weight, is_curved), ...]
-        # is_curved: True (Vẽ cong), False (Vẽ thẳng)
         self.edges = [] 
         
         # Các biến trạng thái
@@ -21,7 +20,7 @@ class MapCanvas(QWidget):
         self.selected_node = None     # Nút đang click chọn
         self.dragging_node = None     # Nút đang kéo thả
         
-        # Biến hỗ trợ hiển thị thuật toán (Màu mè)
+        # Biến hỗ trợ hiển thị thuật toán
         self.highlight_edges = []
         self.visited_nodes = []
         
@@ -42,11 +41,16 @@ class MapCanvas(QWidget):
         self.is_directed = is_directed
         self.update()
 
+    # --- [QUAN TRỌNG] HÀM BỊ THIẾU ĐÃ ĐƯỢC THÊM LẠI ---
+    def reset_algo_visuals(self):
+        self.highlight_edges = []
+        self.visited_nodes = []
+        self.update()
+
     def clear_map(self):
         self.nodes = []
         self.edges = []
-        self.highlight_edges = []
-        self.visited_nodes = []
+        self.reset_algo_visuals() # Gọi hàm reset trạng thái thuật toán
         self.selected_node = None
         self.update()
 
@@ -54,12 +58,11 @@ class MapCanvas(QWidget):
     def get_node_at(self, x, y):
         for i, (nx, ny) in enumerate(self.nodes):
             dist = math.sqrt((x - nx)**2 + (y - ny)**2)
-            # Cộng thêm 5px để dễ click
             if dist <= self.node_radius + 5: 
                 return i
         return None
     
-    # --- HELPER: TÍNH TÂM ĐỒ THỊ (Để biết đường cong nên vồng ra hướng nào) ---
+    # --- HELPER: TÍNH TÂM ĐỒ THỊ ---
     def get_graph_centroid(self):
         if not self.nodes: return (0, 0)
         sum_x = sum(n[0] for n in self.nodes)
@@ -67,9 +70,8 @@ class MapCanvas(QWidget):
         return (sum_x / len(self.nodes), sum_y / len(self.nodes))
 
     # ==========================================================
-    # XỬ LÝ SỰ KIỆN CHUỘT (MOUSE EVENTS)
+    # XỬ LÝ SỰ KIỆN CHUỘT
     # ==========================================================
-
     def mousePressEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
             return
@@ -88,26 +90,22 @@ class MapCanvas(QWidget):
         elif self.current_mode == "draw_edge":
             if clicked_node is not None:
                 if self.selected_node is None:
-                    # Chọn điểm đầu
                     self.selected_node = clicked_node
                 else:
-                    # Chọn điểm cuối -> Tạo cạnh
                     if clicked_node != self.selected_node:
-                        # Check xem có giữ Shift không?
+                        # Check Shift để vẽ cong
                         modifiers = event.modifiers()
                         is_curved = (modifiers & Qt.KeyboardModifier.ShiftModifier)
                         
                         start = self.selected_node
                         end = clicked_node
                         
-                        # Nhập trọng số
                         weight, ok = QInputDialog.getInt(
                             self, "Trọng số", f"Từ {start} -> {end}:", 
                             value=1, min=1, max=999
                         )
                         
                         if ok:
-                            # Update nếu cạnh đã tồn tại, hoặc thêm mới
                             exists = False
                             for idx, (eu, ev, ew, e_curve) in enumerate(self.edges):
                                 if eu == start and ev == end:
@@ -120,7 +118,7 @@ class MapCanvas(QWidget):
                         
                         self.selected_node = None 
                     else:
-                        self.selected_node = None # Bỏ chọn
+                        self.selected_node = None
             else:
                 self.selected_node = None
             self.update()
@@ -135,7 +133,6 @@ class MapCanvas(QWidget):
             self.update()
 
     def mouseMoveEvent(self, event):
-        # Kéo thả nút đi chỗ khác
         if self.current_mode == "view" and self.dragging_node is not None:
             x = event.position().x()
             y = event.position().y()
@@ -147,27 +144,24 @@ class MapCanvas(QWidget):
             self.dragging_node = None
 
     # ==========================================================
-    # VẼ GIAO DIỆN (PAINT EVENT)
+    # VẼ GIAO DIỆN
     # ==========================================================
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        # --- PHẦN 1: VẼ CẠNH ---
         font_weight = QFont("Arial", 10, QFont.Weight.Bold)
         painter.setFont(font_weight)
         
-        # Lấy tâm đồ thị để tính toán đường cong thông minh
         graph_center = self.get_graph_centroid()
 
+        # 1. Vẽ Cạnh
         for u, v, w, is_curved in self.edges:
-            # Skip nếu lỗi index
             if u >= len(self.nodes) or v >= len(self.nodes): continue
 
             p1 = QPointF(self.nodes[u][0], self.nodes[u][1])
             p2 = QPointF(self.nodes[v][0], self.nodes[v][1])
 
-            # Logic đổi màu xanh nếu nằm trong đường đi thuật toán
             is_highlight = False
             for hu, hv in self.highlight_edges:
                 if (hu == u and hv == v) or (not self.is_directed and hu == v and hv == u):
@@ -180,42 +174,36 @@ class MapCanvas(QWidget):
             painter.setBrush(Qt.BrushStyle.NoBrush)
 
             if is_curved:
-                # Vẽ cong thông minh (tránh đè hình)
                 self.draw_curved_edge_smart(painter, p1, p2, str(w), graph_center)
             else:
-                # Vẽ thẳng
                 self.draw_straight_edge(painter, p1, p2, str(w), draw_arrow=self.is_directed)
 
-        # --- PHẦN 2: VẼ NÚT ---
+        # 2. Vẽ Nút
         font_node = QFont("Segoe UI", 12, QFont.Weight.Bold)
         painter.setFont(font_node)
 
         for i, (x, y) in enumerate(self.nodes):
-            # Chọn màu nút
             if i == self.selected_node: brush_color = QColor("#f1c40f")
             elif i in self.visited_nodes: brush_color = QColor("#2ecc71")
             else: brush_color = QColor("#e74c3c")
 
             painter.setBrush(QBrush(brush_color))
-            painter.setPen(QPen(Qt.GlobalColor.white, 3)) # Viền trắng dày
+            painter.setPen(QPen(Qt.GlobalColor.white, 3))
             
             painter.drawEllipse(QPointF(x, y), self.node_radius, self.node_radius)
             
-            # Vẽ số thứ tự
             painter.setPen(QPen(Qt.GlobalColor.white, 1))
             rect = QRect(int(x - self.node_radius), int(y - self.node_radius), 
                          int(self.node_radius*2), int(self.node_radius*2))
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, str(i))
 
-    # --- HÀM VẼ: ĐƯỜNG THẲNG ---
+    # --- CÁC HÀM VẼ CHI TIẾT ---
     def draw_straight_edge(self, painter, p1, p2, text, draw_arrow=False):
         painter.drawLine(p1, p2)
         if draw_arrow: self.draw_arrow_head(painter, p1, p2)
-        
         mid = (p1 + p2) / 2
         self.draw_weight_text(painter, mid, text)
 
-    # --- HÀM VẼ: ĐƯỜNG CONG THÔNG MINH (SMART AUTO-CURVE) ---
     def draw_curved_edge_smart(self, painter, p1, p2, text, graph_center):
         path = QPainterPath()
         path.moveTo(p1)
@@ -228,23 +216,16 @@ class MapCanvas(QWidget):
         dist = math.sqrt(dx*dx + dy*dy)
         if dist == 0: dist = 1
         
-        # Độ vồng = 30% độ dài dây (càng xa càng vồng cao)
         offset = dist * 0.3 
 
-        # Vector pháp tuyến đơn vị
         nx = -dy / dist
         ny = dx / dist
 
-        # Tính 2 điểm điều khiển tiềm năng (2 bên của đoạn thẳng)
         c1_x = mid_x + nx * offset
         c1_y = mid_y + ny * offset
-        
         c2_x = mid_x - nx * offset
         c2_y = mid_y - ny * offset
 
-        # --- LOGIC QUAN TRỌNG NHẤT ---
-        # So sánh khoảng cách tới tâm đồ thị
-        # Chọn điểm nào XA TÂM HƠN để đường cong vồng ra ngoài
         cx, cy = graph_center
         dist_c1 = (c1_x - cx)**2 + (c1_y - cy)**2
         dist_c2 = (c2_x - cx)**2 + (c2_y - cy)**2
@@ -260,7 +241,6 @@ class MapCanvas(QWidget):
         self.draw_arrow_head(painter, ctrl_point, p2)
         self.draw_weight_text(painter, ctrl_point, text)
 
-    # --- HÀM VẼ: ĐẦU MŨI TÊN ---
     def draw_arrow_head(self, painter, start_p, end_p):
         arrow_size = 18
         margin = self.node_radius + 5
@@ -269,12 +249,10 @@ class MapCanvas(QWidget):
         dy = end_p.y() - start_p.y()
         angle = math.atan2(dy, dx)
         
-        # Điểm mũi tên chạm vào viền nút
         end_x = end_p.x() - margin * math.cos(angle)
         end_y = end_p.y() - margin * math.sin(angle)
         real_end = QPointF(end_x, end_y)
 
-        # Tính 2 cánh tam giác
         p1 = QPointF(real_end.x() - arrow_size * math.cos(angle - math.pi / 6),
                      real_end.y() - arrow_size * math.sin(angle - math.pi / 6))
         p2 = QPointF(real_end.x() - arrow_size * math.cos(angle + math.pi / 6),
@@ -283,7 +261,6 @@ class MapCanvas(QWidget):
         painter.setBrush(QBrush(painter.pen().color())) 
         painter.drawPolygon(QPolygonF([real_end, p1, p2]))
 
-    # --- HÀM VẼ: HỘP SỐ TRỌNG SỐ ---
     def draw_weight_text(self, painter, pos, text):
         rect_w = 32
         rect_h = 22
@@ -291,11 +268,11 @@ class MapCanvas(QWidget):
         
         painter.save() 
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor("#222222")) # Nền đen
+        painter.setBrush(QColor("#222222")) 
         painter.setOpacity(0.9)
         painter.drawRect(rect)
         
-        painter.setPen(QColor("#f1c40f")) # Chữ vàng
+        painter.setPen(QColor("#f1c40f"))
         painter.setFont(QFont("Arial", 9, QFont.Weight.Bold))
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
         painter.restore()
