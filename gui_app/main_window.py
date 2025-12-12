@@ -315,6 +315,7 @@ class MainWindow(QMainWindow):
         self.canvas.reset_algo_visuals()
         self.timer.stop()
         self.anim_queue = []
+        self.current_path_str = []
         self.lbl_status.setText("Đang xử lý...")
         
         algo = self.algo_selector.currentText()
@@ -517,7 +518,7 @@ class MainWindow(QMainWindow):
     def on_animation_step(self):
         algo = self.algo_selector.currentText()
         
-        # --- ANIMATION CHO EULER ---
+        # 1. Animation Euler
         if "Euler" in algo:
             if len(self.anim_queue) > 1:
                 u = self.anim_queue.pop(0)
@@ -541,32 +542,39 @@ class MainWindow(QMainWindow):
                 self.lbl_status.setText("Đã hoàn tất Euler.")
                 QMessageBox.information(self, "Thành công", f"Chu trình Euler:\n{path_str}")
         
-        # --- ANIMATION CHO BFS / DFS ---
+        # 2. Animation BFS / DFS (LOGIC ĐÃ ĐƯỢC CẬP NHẬT Ở BẢN FULL NÀY)
         elif "BFS" in algo or "DFS" in algo:
+            # Nguyên tắc: Node vừa chạy xong -> Vào Visited (Xanh)
+            # Node chuẩn bị chạy -> Vào Current (Cam)
+            
+            # Bước A: Xử lý node của lượt trước (nếu có)
+            if self.canvas.current_processing_node is not None:
+                self.canvas.visited_nodes.append(self.canvas.current_processing_node)
+                self.canvas.current_processing_node = None # Tạm xóa cam để tránh trùng
+            
+            # Bước B: Xử lý node lượt này
             if self.anim_queue:
                 node = self.anim_queue.pop(0)
                 
-                # Đánh dấu đã thăm (để tô màu xanh)
-                self.canvas.visited_nodes.append(node)
+                # Gán node mới là Current (sẽ tô Cam)
+                self.canvas.current_processing_node = node
                 
-                # Đánh dấu đang xử lý (để tô màu cam/vàng)
-                self.canvas.current_processing_node = node 
-                self.canvas.update()
-                
-                # Cập nhật log chữ chạy
+                # Cập nhật chữ
                 self.current_path_str.append(str(node))
                 log_text = " -> ".join(self.current_path_str)
-                self.lbl_status.setText(f"Duyệt: {log_text}")
+                self.lbl_status.setText(f"Thứ tự duyệt: {log_text}")
                 
-            else:
-                self.timer.stop()
-                # Xóa màu cam khi xong
-                self.canvas.current_processing_node = None 
                 self.canvas.update()
+            else:
+                # Hết hàng đợi
+                self.timer.stop()
+                self.canvas.update() # Vẽ lại lần cuối để node cuối cùng chuyển Xanh
                 
                 final_text = " -> ".join(map(str, self.full_path_result))
-                self.lbl_status.setText(f"HOÀN TẤT: {final_text}")
-                QMessageBox.information(self, "Duyệt Xong", f"Thứ tự duyệt:\n{final_text}")
+                self.lbl_status.setText(f"✅ HOÀN TẤT: {final_text}")
+                QMessageBox.information(self, "Kết quả", f"Đã duyệt xong!\n\n{final_text}")
+
+    # --- HELPER KHÁC ---
 
     # =========================================================================
     # CÁC HÀM TIỆN ÍCH KHÁC (FILE, DIALOG...)
