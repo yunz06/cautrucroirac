@@ -13,11 +13,6 @@ from PyQt6.QtGui import QColor, QFont
 # Import Canvas vẽ đồ thị
 from gui_app.canvas import MapCanvas 
 
-# =========================================================================
-# KHU VỰC IMPORT CÁC THUẬT TOÁN TỰ VIẾT (CUSTOM ALGORITHMS)
-# Dùng try-except để chương trình không bị crash nếu thiếu file
-# =========================================================================
-
 # 1. Max Flow (Ford-Fulkerson)
 try:
     from algorithms.flow import MaxFlow 
@@ -398,7 +393,7 @@ class MainWindow(QMainWindow):
                 self.canvas.visited_nodes = []
                 
                 self.lbl_status.setText(f"Đang chạy {name} từ đỉnh {s}...")
-                self.timer.start(800) # Tốc độ 800ms/bước
+                self.timer.start(1200) # Tốc độ 1200ms/bước
 
             # -----------------------------------------------------------------
             # 4. KIỂM TRA ĐỒ THỊ 2 PHÍA - Dùng check_bipartite.py
@@ -631,11 +626,15 @@ class MainWindow(QMainWindow):
     def save_graph(self):
         path, _ = QFileDialog.getSaveFileName(self, "Lưu File", "", "JSON Files (*.json)")
         if path:
+            safe_nodes = [list(n) for n in self.canvas.nodes]
+            safe_edges = [list(e) for e in self.canvas.edges]
+            
             data = {
-                "nodes": self.canvas.nodes, 
-                "edges": self.canvas.edges, 
+                "nodes": safe_nodes,  
+                "edges": safe_edges,  
                 "directed": self.chk_directed.isChecked()
             }
+            
             try:
                 with open(path, 'w') as f: json.dump(data, f)
                 QMessageBox.information(self, "Thành công", "Đã lưu đồ thị thành công!")
@@ -651,7 +650,6 @@ class MainWindow(QMainWindow):
                 self.canvas.clear_map()
                 self.canvas.nodes = [tuple(n) for n in data["nodes"]]
                 
-                # Tương thích ngược với file json cũ (chỉ có 3 phần tử trong edge)
                 new_edges = []
                 for e in data["edges"]:
                     if len(e) == 3:
@@ -659,6 +657,7 @@ class MainWindow(QMainWindow):
                         new_edges.append((e[0], e[1], e[2], False))
                     else:
                         new_edges.append(tuple(e))
+                        
                 self.canvas.edges = new_edges
                 
                 is_dir = data.get("directed", True)

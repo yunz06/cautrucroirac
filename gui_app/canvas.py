@@ -95,7 +95,7 @@ class MapCanvas(QWidget):
                     if clicked_node != self.selected_node:
                         # Check Shift để vẽ cong
                         modifiers = event.modifiers()
-                        is_curved = (modifiers & Qt.KeyboardModifier.ShiftModifier)
+                        is_curved = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
                         
                         start = self.selected_node
                         end = clicked_node
