@@ -115,16 +115,16 @@ class MainWindow(QMainWindow):
         draw_group = QGroupBox("Công cụ Vẽ Đồ Thị")
         draw_layout = QVBoxLayout()
         
-        self.chk_directed = QCheckBox("Đồ thị Có hướng (Directed)")
+        self.chk_directed = QCheckBox("Đường 1chiều/2chiều (Directed)")
         self.chk_directed.setChecked(True) # Mặc định là có hướng
         self.chk_directed.setStyleSheet("color: #f1c40f; font-weight: bold; margin-bottom: 5px;")
         self.chk_directed.toggled.connect(self.toggle_directed)
         draw_layout.addWidget(self.chk_directed)
         
-        btn_node = QPushButton("🔴 Vẽ Đỉnh (Node)")
+        btn_node = QPushButton("🔴 Vẽ Giao Lộ (Node)")
         btn_node.clicked.connect(lambda: self.canvas.set_mode("draw_node"))
         
-        btn_edge = QPushButton("➖ Vẽ Cạnh (Edge)")
+        btn_edge = QPushButton("➖ Vẽ Tuyến Đường (Edge)")
         btn_edge.clicked.connect(lambda: self.canvas.set_mode("draw_edge"))
         
         btn_view = QPushButton("👆 Chọn / Di chuyển")
