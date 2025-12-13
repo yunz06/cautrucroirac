@@ -1,113 +1,110 @@
 #class Graph , Node , Edge 
 
+import json
+
 class Node:
-    """
-    Đại diện cho một Đỉnh (Node), lưu trữ vị trí vật lý (x, y) trên Canvas.
-    Key (index) dùng để tham chiếu.
-    """
-    def __init__(self, key: int, x: float = 0.0, y: float = 0.0):
-        self.key = key          
-        self.x = x              # Tọa độ X trên Canvas
-        self.y = y              # Tọa độ Y trên Canvas
+    """Đại diện cho một Đỉnh (Node) trong đồ thị."""
+    def __init__(self, key):
+        self.key = key        
         self.neighbors = []     # Danh sách các đối tượng Edge đi ra
 
-    def get_position(self):
-        """Trả về tuple tọa độ (x, y)."""
-        return (self.x, self.y)
+        # Thuộc tính tối thiểu cho DFS
+        self.color = 'white'    # Trạng thái duyệt ('white', 'gray', 'black')
+        self.parent = None      # Đỉnh cha
+    
+    # Phương thức để dễ dàng chuyển đổi sang dictionary khi lưu JSON
+    def to_dict(self):
+        return {
+            'key': self.key,
+            # Lưu key của các đỉnh đích và trọng số
+            'edges': [{'dest_key': edge.destination.key, 
+                       'weight': edge.weight} 
+                      for edge in self.neighbors]
+        }
 
     def __repr__(self):
-        return f"Node({self.key}, pos=({self.x:.1f}, {self.y:.1f}))"
+        return f"Node('{self.key}')"
 
 class Edge:
-    """
-    Đại diện cho một Cạnh (Edge), bao gồm trọng số và cờ cong.
-    """
-    def __init__(self, source: Node, destination: Node, weight: float = 1.0, is_curved: bool = False):
-        self.source = source          
-        self.destination = destination  
-        self.weight = weight          
-        self.is_curved = is_curved    
-
+    """Đại diện cho một Cạnh (Edge) trong đồ thị."""
+    def __init__(self, source, destination, weight=1):
+        self.source = source          # Đối tượng Node nguồn
+        self.destination = destination  # Đối tượng Node đích
+        self.weight = weight          # Trọng số
+    
     def __repr__(self):
         return f"Edge({self.source.key}->{self.destination.key}, w={self.weight})"
 
 class Graph:
-    """
-    Graph Adapter: Quản lý cấu trúc Node/Edge Objects và cung cấp 
-    danh sách kề (Adjacency List) dễ dùng cho các thuật toán.
-    """
-    def __init__(self, directed: bool = False):
-        self.nodes = {}             # {index: Node object}
-        self.edges = []             # List of Edge objects (chỉ lưu cạnh đi)
+    """Quản lý đồ thị."""
+    def __init__(self, directed=False):
+        self.nodes = {}       # {key: Node value}
         self.directed = directed
-        self._adj_list = {}         # Danh sách kề được tính toán
 
-    def num_nodes(self):
-        return len(self.nodes)
+    def add_node(self, key):
+        """Thêm một đỉnh mới hoặc trả về đỉnh đã tồn tại."""
+        if key not in self.nodes:
+            new_node = Node(key)
+            self.nodes[key] = new_node
+        return self.nodes[key]
 
-    def build_adjacency_list(self):
-        """
-        Tính toán và trả về Danh sách kề chuẩn {u: [(v, w), ...]} 
-        dùng cho các thuật toán.
-        """
-        n = self.num_nodes
-        adj = {i: [] for i in self.nodes.keys()}
+    def add_edge(self, u_key, v_key, weight=1):
+        """Thêm cạnh (u -> v)."""
+        u_node = self.add_node(u_key)
+        v_node = self.add_node(v_key)
+
+        new_edge = Edge(u_node, v_node, weight)
+        u_node.add_neighbor(new_edge)
+
+        if not self.directed:
+            # Thêm cạnh ngược cho đồ thị vô hướng (v -> u)
+            reverse_edge = Edge(v_node, u_node, weight)
+            v_node.add_neighbor(reverse_edge)
+    
+    ## --- Tính năng Lưu/Tải JSON Đơn giản ---
+    
+    def save_to_json(self, file_path):
+        """Lưu toàn bộ đồ thị sang định dạng JSON đơn giản."""
+        data = {
+            'directed': self.directed,
+            'nodes': [node.to_dict() for node in self.nodes.values()]
+        }
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4)
+        print(f"Đã lưu đồ thị thành công vào {file_path}")
+
+    @classmethod
+    def load_from_json(cls, file_path):
+        """Tải đồ thị từ tệp JSON đơn giản."""
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
         
-        for edge in self.edges:
-            u = edge.source_key
-            v = edge.destination_key
-            w = edge.weight
-
-            # Cạnh xuôi (u -> v)
-            adj[u].append((v, w))
+        new_graph = cls(directed=data.get('directed', False))
+        
+        # 1. Tạo tất cả các Node
+        for node_data in data['nodes']:
+            new_graph.add_node(node_data['key'])
+        
+        # 2. Thêm các Edge
+        for node_data in data['nodes']:
+            u_key = node_data['key']
+            u_node = new_graph.get_node(u_key)
             
-            # Cạnh ngược (v -> u) nếu là đồ thị vô hướng
-            if not self.directed:
-                adj[v].append((u, w))
+            for edge_data in node_data['edges']:
+                v_key = edge_data['dest_key']
+                v_node = new_graph.get_node(v_key)
                 
-        self._adj_list = adj
-        return self._adj_list
-
-    def from_canvas_data(self, canvas_nodes_data: list, canvas_edges_data: list):
-        """
-        Khôi phục đối tượng Node/Edge từ dữ liệu list of tuples của MapCanvas.
-        """
-        self.nodes.clear()
-        self.edges.clear()
-
-        # 1. Khởi tạo tất cả các Node 
-        for i, (x, y) in enumerate(canvas_nodes_data):
-            self.nodes[i] = Node(i, x, y) 
-
-        # 2. Thêm các Edge (chỉ thêm cạnh xuôi cho đồ thị có hướng)
-        for u_idx, v_idx, weight_val, is_curved in canvas_edges_data:
-            if u_idx not in self.nodes or v_idx not in self.nodes:
-                continue
-            
-            try:
-                weight = float(weight_val) 
-            except (ValueError, TypeError):
-                weight = 1.0 
-
-            # Thêm Edge Object vào list
-            self.edges.append(Edge(u_idx, v_idx, weight, is_curved))
-            
-            # Nếu vô hướng và cạnh ngược chưa được thêm
-            if not self.directed and (v_idx, u_idx, weight_val, is_curved) not in canvas_edges_data:
-                pass 
-
-        # 3. Xây dựng danh sách kề sau khi có đủ Node và Edge
-        self.build_adjacency_list()
+                # Tạo và thêm đối tượng Edge
+                new_edge = Edge(
+                    source=u_node, 
+                    destination=v_node, 
+                    weight=edge_data.get('weight', 1)
+                )
+                u_node.neighbors.append(new_edge)
         
-        return self
+        print(f"Đã tải đồ thị thành công từ {file_path}")
+        return new_graph
 
-    def to_canvas_data(self):
-        """
-        Chuyển đổi cấu trúc Graph ngược lại về định dạng list of tuples của Canvas.
-        """
-        nodes_data = [node.get_position() for node in self.nodes.values()]
-        
-        # Chỉ cần trả về dữ liệu thô của các Edge đã được lưu (chỉ 1 chiều)
-        edges_data = [edge.get_raw_data() for edge in self.edges]
-
-        return nodes_data, edges_data
+    def get_node(self, key):
+        """Lấy một Node từ key."""
+        return self.nodes.get(key)
