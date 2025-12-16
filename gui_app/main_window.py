@@ -515,7 +515,6 @@ class MainWindow(QMainWindow):
             else: G.add_edge(u, v)
         return G
 
-    # --- [ĐÃ NÂNG CẤP HÀM NÀY] ---
     def show_representation_dialog(self):
         n = len(self.canvas.nodes)
         if n == 0: return
@@ -584,7 +583,6 @@ class MainWindow(QMainWindow):
                 self.canvas.clear_map()
                 self.canvas.nodes = [tuple(n) for n in data["nodes"]]
                 
-                # Load edges: Tương thích ngược với file cũ (chưa có is_curved)
                 new_edges = []
                 for e in data["edges"]:
                     if len(e) == 3:

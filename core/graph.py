@@ -1,6 +1,5 @@
 #class Graph , Node , Edge 
 
-import json
 from PyQt6.QtWidgets import QFileDialog
 
 class Node:

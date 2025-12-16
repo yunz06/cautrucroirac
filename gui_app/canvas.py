@@ -52,7 +52,7 @@ class MapCanvas(QWidget):
         self.custom_edge_labels = {} 
         self.update()
 
-    # --- HÀM XÓA SẠCH DỮ LIỆU ---
+    # --- HÀM XÓA DỮ LIỆU ---
     def clear_map(self):
         self.nodes = []
         self.edges = []
