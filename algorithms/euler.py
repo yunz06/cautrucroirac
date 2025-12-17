@@ -62,8 +62,6 @@ def find_euler_path(adj_list):
     stack = [start_node]
     
     # Tạo copy graph để xóa cạnh dần
-    # Lưu ý: graph ở đây là danh sách kề, có thể có cạnh lặp nếu là đa đồ thị. 
-    # Nhưng ở đây ta dùng remove value nên nếu có nhiều số giống nhau nó chỉ xóa 1 cái -> OK cho đa đồ thị.
     current_graph = copy.deepcopy(graph)
 
     while stack:

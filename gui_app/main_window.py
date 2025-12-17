@@ -1,5 +1,3 @@
-# gui_app/main_window.py
-
 import sys
 import json
 import networkx as nx
@@ -13,42 +11,39 @@ from PyQt6.QtGui import QColor, QFont
 # Import Canvas vẽ đồ thị
 from gui_app.canvas import MapCanvas 
 
-# 1. Max Flow (Ford-Fulkerson)
+# ============================================================
+# IMPORT THUẬT TOÁN (XỬ LÝ LỖI NẾU THIẾU FILE)
+# ============================================================
 try:
     from algorithms.flow import MaxFlow 
 except ImportError: 
     MaxFlow = None
     print("⚠️ Cảnh báo: Không tìm thấy module algorithms/flow.py")
 
-# 2. MST (Prim / Kruskal)
 try:
     from algorithms.mst import run_prim, run_kruskal
 except ImportError: 
     run_prim, run_kruskal = None, None
     print("⚠️ Cảnh báo: Không tìm thấy module algorithms/mst.py")
 
-# 3. Duyệt Đồ thị (BFS / DFS)
 try:
     from algorithms.traversal import run_bfs, run_dfs
 except ImportError: 
     run_bfs, run_dfs = None, None
     print("⚠️ Cảnh báo: Không tìm thấy module algorithms/traversal.py")
 
-# 4. Đường đi ngắn nhất (A* / Dijkstra tự viết)
 try:
     from algorithms.shortest_path import a_star_search, TrafficGraph
 except ImportError: 
     a_star_search, TrafficGraph = None, None
     print("⚠️ Cảnh báo: Không tìm thấy module algorithms/shortest_path.py")
 
-# 5. Kiểm tra Đồ thị 2 phía (Bipartite)
 try:
     from algorithms.check_bipartite import check_bipartite
 except ImportError: 
     check_bipartite = None
     print("⚠️ Cảnh báo: Không tìm thấy module algorithms/check_bipartite.py")
 
-# 6. Chu trình Euler (Hierholzer)
 try:
     from algorithms.euler import find_euler_path
 except ImportError: 
@@ -67,24 +62,23 @@ class MainWindow(QMainWindow):
         # Khởi tạo Canvas (vùng vẽ)
         self.canvas = MapCanvas()
         
-        # Khởi tạo Timer cho Animation (chạy từng bước)
+        # Khởi tạo Timer cho Animation
         self.timer = QTimer()
         self.timer.timeout.connect(self.on_animation_step)
         
         # Các biến lưu trữ trạng thái chạy thuật toán
         self.anim_queue = []          # Hàng đợi các bước animation
-        self.current_path_str = []    # Lưu chuỗi log (ví dụ: "0 -> 1 -> 3")
-        self.full_path_result = []    # Lưu kết quả đầy đủ để hiển thị cuối cùng
+        self.current_path_str = []    # Lưu chuỗi log
+        self.full_path_result = []    # Lưu kết quả đầy đủ
         
         # Xây dựng giao diện
         self.setup_ui()
 
     def setup_ui(self):
-        """Thiết lập toàn bộ giao diện người dùng (Layout, Button, Input...)"""
+        """Thiết lập toàn bộ giao diện người dùng"""
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         
-        # Layout chính: Chia ngang (Trái: Công cụ, Phải: Canvas)
         layout = QHBoxLayout(main_widget)
 
         # -----------------------------------------------------------
@@ -106,7 +100,8 @@ class MainWindow(QMainWindow):
         btn_clear = QPushButton("🗑️ Xóa Tất Cả")
         btn_clear.clicked.connect(self.clear_graph)
         
-        btn_convert = QPushButton("🔄 Xem Ma Trận / DS Kề")
+        # --- [ĐÃ ĐỔI TÊN NÚT BẤM CHO SANG] ---
+        btn_convert = QPushButton("🔄 Số hóa Dữ liệu")
         btn_convert.clicked.connect(self.show_representation_dialog)
         
         file_layout.addWidget(btn_save)
@@ -120,16 +115,16 @@ class MainWindow(QMainWindow):
         draw_group = QGroupBox("Công cụ Vẽ Đồ Thị")
         draw_layout = QVBoxLayout()
         
-        self.chk_directed = QCheckBox("Đồ thị Có hướng (Directed)")
+        self.chk_directed = QCheckBox("Đường 1chiều/2chiều (Directed)")
         self.chk_directed.setChecked(True) # Mặc định là có hướng
         self.chk_directed.setStyleSheet("color: #f1c40f; font-weight: bold; margin-bottom: 5px;")
         self.chk_directed.toggled.connect(self.toggle_directed)
         draw_layout.addWidget(self.chk_directed)
         
-        btn_node = QPushButton("🔴 Vẽ Đỉnh (Node)")
+        btn_node = QPushButton("🔴 Vẽ Giao Lộ (Node)")
         btn_node.clicked.connect(lambda: self.canvas.set_mode("draw_node"))
         
-        btn_edge = QPushButton("➖ Vẽ Cạnh (Edge)")
+        btn_edge = QPushButton("➖ Vẽ Tuyến Đường (Edge)")
         btn_edge.clicked.connect(lambda: self.canvas.set_mode("draw_edge"))
         
         btn_view = QPushButton("👆 Chọn / Di chuyển")
@@ -148,14 +143,14 @@ class MainWindow(QMainWindow):
         algo_layout.addWidget(QLabel("Chọn chức năng:"))
         self.algo_selector = QComboBox()
         self.algo_selector.addItems([
-            "1. Tìm đường ngắn nhất (A* Search)",
-            "2. Duyệt BFS (Theo chiều rộng)",
-            "3. Duyệt DFS (Theo chiều sâu)",
-            "4. Kiểm tra Đồ thị 2 phía (Bipartite)",
-            "5. Cây khung nhỏ nhất Prim (MST)",
-            "6. Cây khung nhỏ nhất Kruskal (MST)",
-            "7. Luồng cực đại (Max Flow)",
-            "8. Chu trình Euler (Hierholzer)"
+            "1. Tìm đường ngắn nhất (Dijkstra/A*)",
+            "2. Luồng cực đại (Max Flow)",
+            "3. Cây khung nhỏ nhất Prim (MST)",
+            "4. Cây khung nhỏ nhất Kruskal (MST)",
+            "5. Chu trình Euler (Hierholzer)",
+            "6. Duyệt BFS (Theo chiều rộng)",
+            "7. Duyệt DFS (Theo chiều sâu)",
+            "8. Kiểm tra Đồ thị 2 phía (Bipartite)"
         ])
         self.algo_selector.currentIndexChanged.connect(self.on_algo_change)
         algo_layout.addWidget(self.algo_selector)
@@ -213,7 +208,7 @@ class MainWindow(QMainWindow):
         controls_panel.addWidget(algo_group)
 
         # Label hướng dẫn
-        help_lbl = QLabel("💡 Mẹo: Giữ Shift + Click nút cuối để vẽ cạnh cong.\n🖱️ Chuột phải để kéo tạo cạnh nhanh.")
+        help_lbl = QLabel("💡 Giữ Shift + Click nút cuối để vẽ cạnh cong.\n🖱️ Chuột phải để kéo tạo cạnh nhanh.")
         help_lbl.setStyleSheet("color: #bbb; font-style: italic; font-size: 11px; margin-top: 10px;")
         controls_panel.addWidget(help_lbl)
 
@@ -222,26 +217,20 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.canvas, 4)    # Tỷ lệ 4
 
     # =========================================================================
-    # CÁC HÀM XỬ LÝ LOGIC (LOGIC HANDLERS)
+    # CÁC HÀM XỬ LÝ LOGIC
     # =========================================================================
 
     def get_clean_adj_list(self, weighted=False, directed=False):
-        """
-        Hàm quan trọng: Chuyển đổi dữ liệu từ Canvas (các cạnh vẽ) sang 
-        cấu trúc Danh sách kề (Adjacency List) để các thuật toán tự viết hiểu được.
-        """
+        """Chuyển đổi dữ liệu Canvas sang Danh sách kề chuẩn"""
         n = len(self.canvas.nodes)
         adj = {i: [] for i in range(n)}
         
         for item in self.canvas.edges:
-            # Unpack an toàn (đề phòng dữ liệu cũ/mới)
-            if len(item) == 4: 
-                u, v, w, _ = item
-            else: 
-                u, v, w = item
+            # Unpack thông minh (bỏ qua is_curved nếu có)
+            if len(item) == 4: u, v, w, _ = item
+            else: u, v, w = item
             
             # Nếu thuật toán cần trọng số -> lưu tuple (v, w)
-            # Nếu không -> lưu v
             val = (v, float(w)) if weighted else v
             adj[u].append(val)
             
@@ -253,47 +242,37 @@ class MainWindow(QMainWindow):
         return adj
 
     def toggle_directed(self, checked):
-        """Chuyển đổi chế độ Có hướng / Vô hướng"""
         self.canvas.set_graph_type(checked)
 
     def on_algo_change(self):
-        """Ẩn/Hiện ô nhập liệu S, E tùy theo thuật toán được chọn"""
         txt = self.algo_selector.currentText()
-        
-        # Nhóm cần cả Start và End (A*, Max Flow)
+        # Nhóm cần cả Start và End
         if "ngắn nhất" in txt or "Max Flow" in txt:
             self.input_container.setVisible(True)
             self.source_input.setVisible(True)
             self.sink_input.setVisible(True)
-            
-        # Nhóm chỉ cần Start (BFS, DFS, Prim)
+        # Nhóm chỉ cần Start
         elif "BFS" in txt or "DFS" in txt or "Prim" in txt:
             self.input_container.setVisible(True)
             self.source_input.setVisible(True)
             self.sink_input.setVisible(False)
-            
-        # Nhóm không cần nhập gì (Euler, Kruskal, Bipartite)
+        # Nhóm không cần nhập gì
         else:
             self.input_container.setVisible(False)
 
     def get_inputs(self, n, need_sink=True):
-        """Lấy và kiểm tra dữ liệu nhập từ ô Start/End"""
         try:
             txt_s = self.source_input.text()
-            if not txt_s: 
-                raise ValueError("Chưa nhập đỉnh Bắt đầu (Start)")
+            if not txt_s: raise ValueError("Chưa nhập đỉnh Start")
             s = int(txt_s)
-            if not (0 <= s < n): 
-                raise ValueError(f"Đỉnh Start {s} không tồn tại")
+            if not (0 <= s < n): raise ValueError(f"Đỉnh Start {s} không tồn tại")
             
             t = None
             if need_sink:
                 txt_t = self.sink_input.text()
-                if not txt_t: 
-                    raise ValueError("Chưa nhập đỉnh Kết thúc (End)")
+                if not txt_t: raise ValueError("Chưa nhập đỉnh End")
                 t = int(txt_t)
-                if not (0 <= t < n): 
-                    raise ValueError(f"Đỉnh End {t} không tồn tại")
+                if not (0 <= t < n): raise ValueError(f"Đỉnh End {t} không tồn tại")
             return s, t
         except ValueError as ve:
             QMessageBox.warning(self, "Lỗi Nhập liệu", str(ve))
@@ -306,129 +285,100 @@ class MainWindow(QMainWindow):
     # HÀM CHẠY THUẬT TOÁN (RUN ALGORITHM)
     # =========================================================================
     def run_algorithm(self):
-        # 1. Reset trạng thái cũ
-        self.canvas.reset_algo_visuals()
+        try:
+            self.canvas.reset_algo_visuals() # Chỉ xóa màu tô
+        except AttributeError:
+            pass
+
         self.timer.stop()
         self.anim_queue = []
-        self.current_path_str = []
         self.lbl_status.setText("Đang xử lý...")
         
         algo = self.algo_selector.currentText()
         n = len(self.canvas.nodes)
         
-        # Kiểm tra đồ thị trống
         if n == 0: 
             QMessageBox.warning(self, "Lỗi", "Bản đồ chưa có đỉnh nào!")
             return
 
         is_directed = self.chk_directed.isChecked()
-        
-        # NetworkX graph dùng bổ trợ (ví dụ kiểm tra liên thông)
         G_nx = self.get_nx_graph(weighted=True, directed=is_directed)
 
         try:
-            # -----------------------------------------------------------------
-            # 1. TÌM ĐƯỜNG NGẮN NHẤT (A* Search) - Dùng shortest_path.py
-            # -----------------------------------------------------------------
+            # 1. TÌM ĐƯỜNG NGẮN NHẤT
             if "ngắn nhất" in algo:
-                if not (a_star_search and TrafficGraph):
-                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy file shortest_path.py")
-                    return
-                
                 s, t = self.get_inputs(n, need_sink=True)
                 if s is None: return
 
-                # Build TrafficGraph từ Canvas
-                tg = TrafficGraph()
-                for i, (x, y) in enumerate(self.canvas.nodes):
-                    tg.add_node(i, x, y)
-                
-                for item in self.canvas.edges:
-                    if len(item) == 4: u, v, w, _ = item
-                    else: u, v, w = item
-                    # TrafficGraph hỗ trợ khai báo đường 1 chiều hay 2 chiều
-                    tg.add_road(u, v, float(w), one_way=is_directed)
-
-                # Chạy A*
-                path, cost = a_star_search(tg, s, t, mode='distance')
-                
-                if path:
-                    # Convert list nodes -> list edges để highlight
-                    edges_to_highlight = [(path[i], path[i+1]) for i in range(len(path)-1)]
-                    self.canvas.highlight_edges = edges_to_highlight
+                try:
+                    path = nx.dijkstra_path(G_nx, s, t, weight='weight')
+                    cost = nx.dijkstra_path_length(G_nx, s, t, weight='weight')
+                    
+                    edges_hl = [(path[i], path[i+1]) for i in range(len(path)-1)]
+                    self.canvas.highlight_edges = edges_hl
                     self.canvas.update()
                     
                     msg = f"Chi phí: {cost}\nLộ trình: {' -> '.join(map(str, path))}"
                     self.lbl_status.setText(f"Hoàn tất: {msg}")
-                    QMessageBox.information(self, "Kết quả A*", msg)
-                else:
+                    QMessageBox.information(self, "Kết quả (Dijkstra)", msg)
+                    
+                except nx.NetworkXNoPath:
                     self.lbl_status.setText("Không tìm thấy đường đi.")
                     QMessageBox.warning(self, "Kết quả", "Không có đường đi giữa 2 điểm này.")
 
-            # -----------------------------------------------------------------
-            # 2 & 3. DUYỆT BFS / DFS - Dùng traversal.py
-            # -----------------------------------------------------------------
-            elif "BFS" in algo or "DFS" in algo:
-                if not (run_bfs and run_dfs):
-                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy file traversal.py")
+            # 2. MAX FLOW
+            elif "Max Flow" in algo:
+                if not MaxFlow:
+                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy flow.py")
                     return
                 
-                s, _ = self.get_inputs(n, need_sink=False)
+                s, t = self.get_inputs(n, need_sink=True)
                 if s is None: return
                 
-                # Lấy danh sách kề không trọng số
-                adj = self.get_clean_adj_list(weighted=False, directed=is_directed)
-                
-                if "BFS" in algo:
-                    path = run_bfs(adj, s)
-                    name = "BFS"
-                else:
-                    path = run_dfs(adj, s)
-                    name = "DFS"
-                
-                # Setup Animation
-                self.anim_queue = list(path)        # Queue để pop dần
-                self.full_path_result = list(path)  # Lưu kết quả
-                self.current_path_str = []          # Reset log
-                self.canvas.visited_nodes = []
-                
-                self.lbl_status.setText(f"Đang chạy {name} từ đỉnh {s}...")
-                self.timer.start(1200) # Tốc độ 1200ms/bước
+                matrix = [[0]*n for _ in range(n)]
+                capacity_matrix = [[0]*n for _ in range(n)]
 
-            # -----------------------------------------------------------------
-            # 4. KIỂM TRA ĐỒ THỊ 2 PHÍA - Dùng check_bipartite.py
-            # -----------------------------------------------------------------
-            elif "2 phía" in algo:
-                if not check_bipartite:
-                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy file check_bipartite.py")
-                    return
-                
-                # Bipartite luôn xét trên đồ thị vô hướng
-                adj = self.get_clean_adj_list(weighted=False, directed=False)
-                is_bi, color_map = check_bipartite(adj)
-                
-                if is_bi:
-                    self.lbl_status.setText("✅ Kết quả: Đồ thị 2 phía (Bipartite)")
-                    QMessageBox.information(self, "Kết quả", "Đây LÀ đồ thị 2 phía.")
-                else:
-                    self.lbl_status.setText("❌ Kết quả: KHÔNG phải đồ thị 2 phía")
-                    QMessageBox.warning(self, "Kết quả", "Đây KHÔNG phải đồ thị 2 phía.")
+                for item in self.canvas.edges:
+                    if len(item) == 4: u, v, w, _ = item
+                    else: u, v, w = item
+                    
+                    matrix[u][v] = int(w)
+                    capacity_matrix[u][v] = int(w)
+                    if not is_directed: 
+                        matrix[v][u] = int(w)
+                        capacity_matrix[v][u] = int(w)
 
-            # -----------------------------------------------------------------
-            # 5 & 6. CÂY KHUNG (MST) - Dùng mst.py
-            # -----------------------------------------------------------------
+                mf = MaxFlow(matrix)
+                max_val, flow_mat = mf.ford_fulkerson(s, t)
+                
+                hl = []
+                self.canvas.custom_edge_labels = {} # Reset nhãn
+
+                for u in range(n):
+                    for v in range(n):
+                        f = flow_mat[u][v]
+                        c = capacity_matrix[u][v]
+                        if c > 0: # Có cạnh
+                            if f > 0: hl.append((u, v))
+                            self.canvas.custom_edge_labels[(u, v)] = f"{f}/{c}"
+                
+                self.canvas.highlight_edges = hl
+                self.canvas.update()
+                
+                self.lbl_status.setText(f"Max Flow: {max_val}")
+                QMessageBox.information(self, "Kết quả Max Flow", f"Luồng cực đại: {max_val}")
+
+            # 3 & 4. MST (Prim/Kruskal)
             elif "Prim" in algo or "Kruskal" in algo:
                 if not (run_prim and run_kruskal):
-                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy file mst.py")
+                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy mst.py")
                     return
                 
-                # MST xét trên vô hướng, có trọng số
                 adj_w = self.get_clean_adj_list(weighted=True, directed=False)
                 
-                # Kiểm tra liên thông trước (dùng NX cho nhanh)
                 if not nx.is_connected(G_nx.to_undirected()):
-                     QMessageBox.warning(self, "Lỗi", "Đồ thị không liên thông, không thể tìm cây khung!")
-                     return
+                      QMessageBox.warning(self, "Lỗi", "Đồ thị không liên thông, không thể tìm cây khung!")
+                      return
                 
                 if "Prim" in algo:
                     mst_edges, total = run_prim(adj_w)
@@ -440,50 +390,13 @@ class MainWindow(QMainWindow):
                 self.canvas.highlight_edges = mst_edges
                 self.canvas.update()
                 
-                self.lbl_status.setText(f"{name} hoàn tất. Tổng trọng số: {total}")
+                self.lbl_status.setText(f"{name}: Tổng trọng số {total}")
                 QMessageBox.information(self, "Kết quả MST", f"Thuật toán {name}\nTổng trọng số: {total}")
 
-            # -----------------------------------------------------------------
-            # 7. MAX FLOW - Dùng flow.py
-            # -----------------------------------------------------------------
-            elif "Max Flow" in algo:
-                if not MaxFlow:
-                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy file flow.py")
-                    return
-                
-                s, t = self.get_inputs(n, need_sink=True)
-                if s is None: return
-                
-                # Tạo ma trận kề n x n
-                matrix = [[0]*n for _ in range(n)]
-                for item in self.canvas.edges:
-                    if len(item) == 4: u, v, w, _ = item
-                    else: u, v, w = item
-                    matrix[u][v] = int(w)
-                    if not is_directed: 
-                        matrix[v][u] = int(w) # Nếu vô hướng thì dòng chảy 2 chiều
-
-                mf = MaxFlow(matrix)
-                max_val, flow_mat = mf.ford_fulkerson(s, t)
-                
-                # Highlight các cạnh có dòng chảy > 0
-                hl = []
-                for u in range(n):
-                    for v in range(n):
-                        if flow_mat[u][v] > 0: hl.append((u, v))
-                
-                self.canvas.highlight_edges = hl
-                self.canvas.update()
-                
-                self.lbl_status.setText(f"Max Flow: {max_val}")
-                QMessageBox.information(self, "Kết quả Max Flow", f"Luồng cực đại từ {s} -> {t} là: {max_val}")
-
-            # -----------------------------------------------------------------
-            # 8. EULER - Dùng euler.py
-            # -----------------------------------------------------------------
+            # 5. EULER
             elif "Euler" in algo:
                 if not find_euler_path:
-                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy file euler.py")
+                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy euler.py")
                     return
                 
                 adj = self.get_clean_adj_list(weighted=False, directed=is_directed)
@@ -494,88 +407,115 @@ class MainWindow(QMainWindow):
                     self.full_path_result = list(path)
                     self.current_path_str = []
                     self.canvas.highlight_edges = []
+                    self.lbl_status.setText("Xe đang chạy Euler...")
                     
-                    self.lbl_status.setText("Đang chạy chu trình Euler...")
+                    # Đặt xe vào vị trí đầu
+                    self.canvas.car_position = path[0]
+                    self.canvas.update()
                     self.timer.start(600)
                 else:
-                    self.lbl_status.setText("Không tồn tại chu trình Euler.")
-                    QMessageBox.warning(self, "Lỗi Euler", "Đồ thị vi phạm điều kiện Euler (Bậc lẻ hoặc mất cân bằng).")
+                    self.lbl_status.setText("Không có chu trình Euler.")
+                    QMessageBox.warning(self, "Lỗi Euler", "Vi phạm điều kiện Euler (Bậc lẻ/Mất cân bằng).")
+
+            # 6 & 7. BFS / DFS
+            elif "BFS" in algo or "DFS" in algo:
+                if not (run_bfs and run_dfs):
+                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy traversal.py")
+                    return
+                
+                s, _ = self.get_inputs(n, need_sink=False)
+                if s is None: return
+                
+                adj = self.get_clean_adj_list(weighted=False, directed=is_directed)
+                
+                if "BFS" in algo:
+                    path = run_bfs(adj, s)
+                    name = "BFS"
+                else:
+                    path = run_dfs(adj, s)
+                    name = "DFS"
+                
+                self.anim_queue = list(path)
+                self.full_path_result = list(path)
+                self.current_path_str = []
+                self.canvas.visited_nodes = []
+                
+                self.lbl_status.setText(f"Đang chạy {name}...")
+                self.timer.start(800)
+
+            # 8. BIPARTITE
+            elif "2 phía" in algo:
+                if not check_bipartite:
+                    QMessageBox.warning(self, "Thiếu Module", "Không tìm thấy check_bipartite.py")
+                    return
+                
+                adj = self.get_clean_adj_list(weighted=False, directed=False)
+                is_bi, color_map = check_bipartite(adj)
+                
+                if is_bi:
+                    self.lbl_status.setText("✅ Đồ thị 2 phía")
+                    QMessageBox.information(self, "Kết quả", "LÀ đồ thị 2 phía.")
+                else:
+                    self.lbl_status.setText("❌ Không phải 2 phía")
+                    QMessageBox.warning(self, "Kết quả", "KHÔNG phải đồ thị 2 phía.")
 
         except Exception as e:
             import traceback
             traceback.print_exc()
-            self.lbl_status.setText(f"Lỗi: {str(e)}")
-            QMessageBox.critical(self, "Lỗi Runtime", f"Đã xảy ra lỗi:\n{str(e)}")
+            QMessageBox.critical(self, "Lỗi Runtime", str(e))
 
     # =========================================================================
-    # LOGIC ANIMATION (TIMER TICK)
+    # ANIMATION
     # =========================================================================
     def on_animation_step(self):
         algo = self.algo_selector.currentText()
         
-        # 1. Animation Euler
+        # Euler Animation
         if "Euler" in algo:
             if len(self.anim_queue) > 1:
                 u = self.anim_queue.pop(0)
-                v = self.anim_queue[0] # Lấy đỉnh tiếp theo nhưng không pop ngay
+                v = self.anim_queue[0]
                 
-                # Highlight cạnh
                 self.canvas.highlight_edges.append((u, v))
-                # Highlight đỉnh đang đi qua
-                self.canvas.visited_nodes = [u, v]
-                self.canvas.current_processing_node = u # Robot đang ở u
-                
+                self.canvas.car_position = v # Cập nhật vị trí xe
                 self.canvas.update()
                 
-                self.lbl_status.setText(f"Đi qua cạnh: {u} -> {v}")
+                self.lbl_status.setText(f"Xe đi qua: {u} -> {v}")
             else:
                 self.timer.stop()
-                self.canvas.current_processing_node = None
-                self.canvas.update()
-                
                 path_str = " -> ".join(map(str, self.full_path_result))
-                self.lbl_status.setText("Đã hoàn tất Euler.")
-                QMessageBox.information(self, "Thành công", f"Chu trình Euler:\n{path_str}")
+                QMessageBox.information(self, "Thành công", f"Lộ trình Euler:\n{path_str}")
         
-        # 2. Animation BFS / DFS (LOGIC ĐÃ ĐƯỢC CẬP NHẬT Ở BẢN FULL NÀY)
+        # BFS/DFS Animation
         elif "BFS" in algo or "DFS" in algo:
-            # Nguyên tắc: Node vừa chạy xong -> Vào Visited (Xanh)
-            # Node chuẩn bị chạy -> Vào Current (Cam)
-            
-            # Bước A: Xử lý node của lượt trước (nếu có)
-            if self.canvas.current_processing_node is not None:
-                self.canvas.visited_nodes.append(self.canvas.current_processing_node)
-                self.canvas.current_processing_node = None # Tạm xóa cam để tránh trùng
-            
-            # Bước B: Xử lý node lượt này
             if self.anim_queue:
                 node = self.anim_queue.pop(0)
-                
-                # Gán node mới là Current (sẽ tô Cam)
-                self.canvas.current_processing_node = node
-                
-                # Cập nhật chữ
-                self.current_path_str.append(str(node))
-                log_text = " -> ".join(self.current_path_str)
-                self.lbl_status.setText(f"Thứ tự duyệt: {log_text}")
-                
+                self.canvas.visited_nodes.append(node)
                 self.canvas.update()
-            else:
-                # Hết hàng đợi
-                self.timer.stop()
-                self.canvas.update() # Vẽ lại lần cuối để node cuối cùng chuyển Xanh
                 
+                self.current_path_str.append(str(node))
+                self.lbl_status.setText(f"Duyệt: {' -> '.join(self.current_path_str)}")
+            else:
+                self.timer.stop()
                 final_text = " -> ".join(map(str, self.full_path_result))
-                self.lbl_status.setText(f"✅ HOÀN TẤT: {final_text}")
-                QMessageBox.information(self, "Kết quả", f"Đã duyệt xong!\n\n{final_text}")
-
-    # --- HELPER KHÁC ---
+                QMessageBox.information(self, "Duyệt Xong", f"Thứ tự:\n{final_text}")
 
     # =========================================================================
-    # CÁC HÀM TIỆN ÍCH KHÁC (FILE, DIALOG...)
+    # CÁC HÀM PHỤ TRỢ (NETWORKX, DIALOG...)
     # =========================================================================
+    def get_nx_graph(self, weighted=False, directed=False):
+        G = nx.DiGraph() if directed else nx.Graph()
+        for i in range(len(self.canvas.nodes)):
+            G.add_node(i)
+        for item in self.canvas.edges:
+            if len(item) == 4: u, v, w, _ = item
+            else: u, v, w = item
+            
+            if weighted: G.add_edge(u, v, weight=int(w))
+            else: G.add_edge(u, v)
+        return G
+
     def show_representation_dialog(self):
-        """Hiển thị cửa sổ popup chứa Ma trận kề và Danh sách kề"""
         n = len(self.canvas.nodes)
         if n == 0: return
         is_directed = self.chk_directed.isChecked()
@@ -585,61 +525,54 @@ class MainWindow(QMainWindow):
         
         for u, neighbors in adj_list.items():
             for v, w in neighbors:
-                adj_matrix[u][v] = w
+                adj_matrix[u][v] = int(w)
         
+        # 1. Ma trận kề
         txt = "--- MA TRẬN KỀ (Adjacency Matrix) ---\n"
-        # Format căn lề cho đẹp
         txt += "\n".join([" ".join(f"{x:3}" for x in row) for row in adj_matrix])
         
+        # 2. Danh sách kề
         txt += "\n\n--- DANH SÁCH KỀ (Adjacency List) ---\n"
         for k, v in adj_list.items():
             txt += f"Node {k}: {v}\n"
-            
-        txt += "\n\n--- DANH SÁCH CẠNH (Raw Edges) ---\n"
-        txt += str(self.canvas.edges)
+
+        # 3. Danh sách cạnh (Mới thêm)
+        txt += "\n\n--- DANH SÁCH CẠNH (Edge List) ---\n"
+        txt += "Format: (Nguồn, Đích, Trọng số)\n"
+        edge_list_str = []
+        for item in self.canvas.edges:
+            # item có thể là (u, v, w) hoặc (u, v, w, is_curved)
+            if len(item) >= 3:
+                u, v, w = item[0], item[1], item[2]
+                edge_list_str.append(f"({u}, {v}, {w})")
+        
+        txt += "\n".join(edge_list_str)
             
         dlg = QDialog(self)
-        dlg.setWindowTitle("Biểu diễn Đồ thị")
-        dlg.resize(600, 500)
+        dlg.setWindowTitle("Số hóa Dữ liệu Đồ thị")
+        dlg.resize(600, 600)
         box = QVBoxLayout()
-        
         edit = QTextEdit()
         edit.setPlainText(txt)
-        edit.setFont(QFont("Courier New", 10)) # Font đơn cách cho thẳng hàng
-        edit.setReadOnly(True)
-        
+        edit.setFont(QFont("Courier New", 10))
         box.addWidget(edit)
         dlg.setLayout(box)
         dlg.exec()
 
-    def get_nx_graph(self, weighted=False, directed=False):
-        """Tạo đối tượng NetworkX Graph (dùng bổ trợ tính toán nếu cần)"""
-        G = nx.DiGraph() if directed else nx.Graph()
-        for item in self.canvas.edges:
-            if len(item) == 4: u, v, w, _ = item
-            else: u, v, w = item
-            
-            if weighted: G.add_edge(u, v, weight=int(w))
-            else: G.add_edge(u, v)
-        return G
-
     def save_graph(self):
         path, _ = QFileDialog.getSaveFileName(self, "Lưu File", "", "JSON Files (*.json)")
         if path:
-            safe_nodes = [list(n) for n in self.canvas.nodes]
-            safe_edges = [list(e) for e in self.canvas.edges]
-            
+            # Lưu y nguyên data từ canvas (có 4 tham số)
             data = {
-                "nodes": safe_nodes,  
-                "edges": safe_edges,  
+                "nodes": [list(n) for n in self.canvas.nodes],
+                "edges": [list(e) for e in self.canvas.edges],
                 "directed": self.chk_directed.isChecked()
             }
-            
             try:
                 with open(path, 'w') as f: json.dump(data, f)
-                QMessageBox.information(self, "Thành công", "Đã lưu đồ thị thành công!")
+                QMessageBox.information(self, "Thành công", "Đã lưu file!")
             except Exception as e:
-                QMessageBox.critical(self, "Lỗi", f"Không thể lưu file: {e}")
+                QMessageBox.critical(self, "Lỗi", str(e))
 
     def load_graph(self):
         path, _ = QFileDialog.getOpenFileName(self, "Mở File", "", "JSON Files (*.json)")
@@ -653,25 +586,22 @@ class MainWindow(QMainWindow):
                 new_edges = []
                 for e in data["edges"]:
                     if len(e) == 3:
-                        # Thêm False (không cong) vào cuối
-                        new_edges.append((e[0], e[1], e[2], False))
+                        new_edges.append((e[0], e[1], e[2], False)) # Mặc định thẳng
                     else:
                         new_edges.append(tuple(e))
-                        
-                self.canvas.edges = new_edges
                 
+                self.canvas.edges = new_edges
                 is_dir = data.get("directed", True)
                 self.chk_directed.setChecked(is_dir)
                 self.canvas.set_graph_type(is_dir)
-                
                 self.canvas.update()
                 QMessageBox.information(self, "Thành công", "Đã tải đồ thị!")
             except Exception as e:
-                QMessageBox.critical(self, "Lỗi", f"File không hợp lệ: {e}")
-    
+                QMessageBox.critical(self, "Lỗi", str(e))
+
     def clear_graph(self):
         confirm = QMessageBox.question(self, "Xác nhận", "Bạn có chắc muốn xóa toàn bộ bản đồ không?", 
                                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if confirm == QMessageBox.StandardButton.Yes:
             self.canvas.clear_map()
-            self.lbl_status.setText("Trạng thái: Sẵn sàng")
+            self.lbl_status.setText("Đã xóa tất cả.")

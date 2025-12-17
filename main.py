@@ -25,14 +25,14 @@ def main():
     # 2. Thiết lập thông tin ứng dụng
     app.setApplicationName("UrbanFlow")
     app.setApplicationVersion("1.0")
-    app.setOrganizationName("NhomF_GTVT")
+    app.setOrganizationName("Nhom_F_GTVT")
 
     # 3. Khởi tạo và hiển thị cửa sổ chính
     # Bọc trong try-except để nếu code lỗi thì nó in ra màn hình đen (console) cho dễ sửa
     try:
         window = MainWindow()
         window.show()
-             
+        
         print("✅ Ứng dụng UrbanFlow đã khởi động thành công!")
         
         # 4. Bắt đầu vòng lặp sự kiện (Giữ cho cửa sổ luôn mở)

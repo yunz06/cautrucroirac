@@ -1,7 +1,5 @@
 #Thuật toán Prim và Kruskal
 
-import sys
-
 # --- PHẦN 1: THUẬT TOÁN KRUSKAL ---
 class KruskalSolver:
     def __init__(self, num_nodes):
